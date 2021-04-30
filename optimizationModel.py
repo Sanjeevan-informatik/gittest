@@ -3593,4 +3593,47 @@ m.Eff -> efficiency for each charge process and discharge process
 round trip eff. = m.Eff^2
 
 
+
+
 """
+
+
+
+ # Capacity motion
+        def cap_motion_rule(m, N, T, Y):
+            """[kW]"""
+            if Y == m.Y_start:
+                return m.cap_add[N, T, Y]
+            else:
+                return m.inst_cap[N, T, Y-m.Delta_Y] + m.cap_add[N, T, Y] - m.cap_sub[N, T, Y]
+        m.inst_cap = pyo.Expression(m.Node, m.Tech, m.Year, rule=cap_motion_rule)
+
+        # Constant electricity consumption of system [kW]
+        def const_cons_system_rule(m, N, F1, Y):
+            return m.Share_const_cons_system[F1] * sum(m.inst_cap[N,T,Y] for T in m.Tech if m.Tech_const_cons_system[T])
+        m.Const_cons_system = pyo.Expression(m.Node, m.Fuel1, m.Year, rule=const_cons_system_rule)
+
+        # Storage volume motion
+        def storage_vol_motion_rule(m, N, StoreT, Y):
+            """[kWh]"""
+            if Y == m.Y_start:
+                return m.storage_vol_add[N, StoreT, Y]
+            else:
+                return m.inst_storage_vol[N, StoreT, Y-m.Delta_Y] + m.storage_vol_add[N, StoreT, Y] - m.storage_vol_sub[N, StoreT, Y]
+
+        m.inst_storage_vol = pyo.Expression(m.Node, m.StorageTech, m.Year, rule=storage_vol_motion_rule)
+
+        # Fuel production at max efficiency [kW]
+        def fuel_production_part_load_max_eff_rule(m, N, T, Y):
+            """[kW]"""
+            if m.Max_inst_cap[N,T,Y]>0:
+                if m.Cap_of_input[T]:
+                    # eg: Electrolysis
+                    Eff_temp = m.Eff[T]
+                else:
+                    # eg: GenSet, Wind
+                    Eff_temp = 1
+                return m.inst_cap[N,T,Y] * Eff_temp * m.Part_load_max_eff[T]
+            else:
+                return 0
+        m.F_prod_part_load_max_eff = pyo.Expression(m.Node, m.Tech-m.StorageTech, m.Year, rule=fuel_production_part_load_max_eff_rule)
