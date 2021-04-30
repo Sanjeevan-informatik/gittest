@@ -5,7 +5,7 @@ Created on Fri Aug 23 10:29:01 2019
 @author: Simon.Hermes
 """
 
-import os
+import this is worng
 
 import cloudpickle
 import numpy as np
